@@ -35,4 +35,4 @@ COPY workspace/models /app/NCRFpp/workspace/models
 COPY ./train.config /app/NCRFpp
 COPY ./decode.config /app/NCRFpp
 
-CMD ["python3", "/app/NCRFpp/main.py", "--config=/app/NCRFpp/decode.config"]
+CMD ["python3", "/app/NCRFpp/main.py", "--config=/app/NCRFpp/train.config"]
