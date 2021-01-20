@@ -26,10 +26,12 @@ RUN apt-get update -y && apt-get install -y \
     libmecab-dev
 RUN ln -s /etc/mecabrc /usr/local/etc/mecabrc
 
+RUN rm -fr NCRFpp
 RUN git clone https://github.com/kzinmr/NCRFpp.git && cd NCRFpp
+COPY ./train.config /app/NCRFpp
 RUN mkdir -p /app/NCRFpp/workspace/data
 RUN mkdir -p /app/NCRFpp/workspace/models
 COPY workspace/data /app/NCRFpp/workspace/data
 COPY workspace/models /app/NCRFpp/workspace/models
 
-CMD ["python3", "main.py", "--config=train.config"]
+CMD ["python3", "/app/NCRFpp/main.py", "--config=/app/NCRFpp/train.config"]
