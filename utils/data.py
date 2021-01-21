@@ -93,6 +93,7 @@ class Data:
         self.status = "train"
         ### Hyperparameters
         self.HP_cnn_layer = 4
+        self.HP_cnn_kernel = 3
         self.HP_iteration = 100
         self.HP_batch_size = 10
         self.HP_char_hidden_dim = 50
