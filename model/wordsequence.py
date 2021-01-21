@@ -51,7 +51,7 @@ class WordSequence(nn.Module):
             self.cnn_list = nn.ModuleList()
             self.cnn_drop_list = nn.ModuleList()
             self.cnn_batchnorm_list = nn.ModuleList()
-            kernel = 3
+            kernel = data.HP_cnn_kernel
             pad_size = int((kernel-1)/2)
             for idx in range(self.cnn_layer):
                 self.cnn_list.append(nn.Conv1d(data.HP_hidden_dim, data.HP_hidden_dim, kernel_size=kernel, padding=pad_size))

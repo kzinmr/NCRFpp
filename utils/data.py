@@ -499,6 +499,9 @@ class Data:
         the_item = 'batch_size'
         if the_item in config:
             self.HP_batch_size = int(config[the_item])
+        the_item = 'cnn_kernel'
+        if the_item in config:
+            self.HP_cnn_kernel = int(config[the_item])
 
         the_item = 'char_hidden_dim'
         if the_item in config:
