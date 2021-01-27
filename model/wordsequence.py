@@ -34,8 +34,8 @@ class CNN(nn.Module):
 
     def forward(self, embeddings):
         # swap seq_len and embedding
-        word_in = torch.tanh(self.word2cnn(embeddings)).permute(0, 2, 1)
-        feature_out = self.cnn(word_in).permute(0, 2, 1)
+        word_in = torch.tanh(self.word2cnn(embeddings)).transpose(2,1).contiguous()
+        feature_out = self.cnn(word_in).transpose(2,1).contiguous()
         # .transpose(1, 2).contiguous()
         return feature_out
 
@@ -78,8 +78,8 @@ class IDCNN(nn.Module):
 
     def forward(self, embeddings):
         # swap seq_len and embedding
-        word_in = torch.tanh(self.word2cnn(embeddings)).permute(0, 2, 1)
-        output = self.idcnn(word_in).permute(0, 2, 1)
+        word_in = torch.tanh(self.word2cnn(embeddings)).transpose(2,1).contiguous()
+        output = self.idcnn(word_in).transpose(2,1).contiguous()
         return output
 
 
