@@ -84,6 +84,7 @@ class Data:
         self.use_char = True
         self.char_feature_extractor = "CNN" ## "LSTM"/"CNN"/"GRU"/None
         self.use_crf = True
+        self.use_idcnn = False
         self.nbest = None
 
         ## Training
@@ -152,6 +153,7 @@ class Data:
         print(" "+"++"*20)
         print(" Model Network:")
         print("     Model        use_crf: %s"%(self.use_crf))
+        print("     Model        use_idcnn: %s"%(self.use_idcnn))
         print("     Model word extractor: %s"%(self.word_feature_extractor))
         print("     Model       use_char: %s"%(self.use_char))
         if self.use_char:
@@ -463,6 +465,9 @@ class Data:
         the_item = 'use_char'
         if the_item in config:
             self.use_char = str2bool(config[the_item])
+        the_item = 'use_idcnn'
+        if the_item in config:
+            self.use_idcnn = str2bool(config[the_item])
         the_item = 'word_seq_feature'
         if the_item in config:
             self.word_feature_extractor = config[the_item]
