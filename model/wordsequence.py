@@ -119,6 +119,7 @@ class WordSequence(nn.Module):
                 self.lstm = nn.LSTM(self.input_size, self.hidden_dim, num_layers=self.lstm_layer, batch_first=True, bidirectional=self.bilstm_flag)
         elif self.word_feature_extractor == "CNN":
             self.cnn_layer = data.HP_cnn_layer
+            self.cnn_kernel = data.HP_cnn_kernel
             print("CNN layer: ", self.cnn_layer)
             self.use_idcnn = data.use_idcnn
             if self.use_idcnn:
