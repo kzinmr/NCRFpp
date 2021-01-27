@@ -144,12 +144,12 @@ class WordSequence(nn.Module):
         self.hidden2tag = nn.Linear(data.HP_hidden_dim, data.label_alphabet_size)
 
         if self.gpu:
-            self.droplstm = self.droplstm.cuda()
             self.hidden2tag = self.hidden2tag.cuda()
             if self.word_feature_extractor == "CNN":
                 # self.word2cnn = self.word2cnn.cuda()
                 self.cnn_list = self.cnn_list.cuda()
             else:
+                self.droplstm = self.droplstm.cuda()
                 self.lstm = self.lstm.cuda()
 
 
