@@ -54,10 +54,10 @@ class WordSequence(nn.Module):
             print("CNN layer: ", self.cnn_layer)
             self.use_idcnn = data.use_idcnn
             filters = self.hidden_dim
-            num_layers = self.cnn_layer
-            kernel_size = self.cnn_kernel
-            dropout = data.HP_dropout
-            # if self.use_idcnn:
+            # num_layers = self.cnn_layer
+            # kernel_size = self.cnn_kernel
+            # dropout = data.HP_dropout
+            if self.use_idcnn:
             #     dilations=[1, 1, 2]
             #     dcnn = nn.Sequential()
             #     for i, dilation in enumerate(dilations):
@@ -80,32 +80,59 @@ class WordSequence(nn.Module):
             #         self.cnn.add_module("block%i" % i, dcnn)
             #         self.cnn.add_module("relu", nn.ReLU())
             #         self.cnn.add_module("dropout", nn.Dropout(dropout))
-            #         self.cnn.add_module("batchnorm", nn.BatchNorm1d(filters))                
-            # else:
-            # pad_size = int((kernel_size - 1) / 2)
-            # self.cnn = nn.Sequential()
-            # for i in range(num_layers):
-            #     self.cnn.add_module("layer%d" % i, 
-            #         nn.Conv1d(
-            #             in_channels=filters,
-            #             out_channels=filters,
-            #             kernel_size=kernel_size,
-            #             padding=pad_size,
-            #         )
-            #     )
-            #     self.cnn.add_module("relu", nn.ReLU())
-            #     self.cnn.add_module("dropout", nn.Dropout(dropout))
-            #     self.cnn.add_module("batchnorm", nn.BatchNorm1d(filters))                
+            #         self.cnn.add_module("batchnorm", nn.BatchNorm1d(filters))
+                
+                self.cnn_list = nn.ModuleList()
+                self.cnn_drop_list = nn.ModuleList()
+                self.cnn_batchnorm_list = nn.ModuleList()
+                self.dcnn_drop_list = nn.ModuleList()
+                self.dcnn_batchnorm_list = nn.ModuleList()
+                kernel = self.cnn_kernel
+                self.dilations = [1, 1, 2]
+                for idx in range(self.cnn_layer):
+                    dcnn = nn.ModuleList()
+                    for i, dilation in enumerate(self.dilations):
+                        pad_size = kernel // 2 + dilation - 1
+                        dcnn.append(
+                            nn.Conv1d(
+                                in_channels=filters,
+                                out_channels=filters,
+                                kernel_size=kernel,
+                                dilation=dilation,
+                                padding=pad_size,
+                            )
+                        )
+                        self.dcnn_drop_list.append(nn.Dropout(data.HP_dropout))
+                        self.dcnn_batchnorm_list.append(nn.BatchNorm1d(data.HP_hidden_dim))
+                    self.cnn_list.append(dcnn)
+                    self.cnn_drop_list.append(nn.Dropout(data.HP_dropout))
+                    self.cnn_batchnorm_list.append(nn.BatchNorm1d(data.HP_hidden_dim))
 
-            self.cnn_list = nn.ModuleList()
-            self.cnn_drop_list = nn.ModuleList()
-            self.cnn_batchnorm_list = nn.ModuleList()
-            kernel = 3
-            pad_size = int((kernel-1)/2)
-            for idx in range(self.cnn_layer):
-                self.cnn_list.append(nn.Conv1d(data.HP_hidden_dim, data.HP_hidden_dim, kernel_size=kernel, padding=pad_size))
-                self.cnn_drop_list.append(nn.Dropout(data.HP_dropout))
-                self.cnn_batchnorm_list.append(nn.BatchNorm1d(data.HP_hidden_dim))
+            else:
+                # pad_size = int((kernel_size - 1) / 2)
+                # self.cnn = nn.Sequential()
+                # for i in range(num_layers):
+                #     self.cnn.add_module("layer%d" % i, 
+                #         nn.Conv1d(
+                #             in_channels=filters,
+                #             out_channels=filters,
+                #             kernel_size=kernel_size,
+                #             padding=pad_size,
+                #         )
+                #     )
+                #     self.cnn.add_module("relu", nn.ReLU())
+                #     self.cnn.add_module("dropout", nn.Dropout(dropout))
+                #     self.cnn.add_module("batchnorm", nn.BatchNorm1d(filters))
+
+                self.cnn_list = nn.ModuleList()
+                self.cnn_drop_list = nn.ModuleList()
+                self.cnn_batchnorm_list = nn.ModuleList()
+                kernel = self.cnn_kernel
+                pad_size = int((kernel-1)/2)
+                for idx in range(self.cnn_layer):
+                    self.cnn_list.append(nn.Conv1d(data.HP_hidden_dim, data.HP_hidden_dim, kernel_size=kernel, padding=pad_size))
+                    self.cnn_drop_list.append(nn.Dropout(data.HP_dropout))
+                    self.cnn_batchnorm_list.append(nn.BatchNorm1d(data.HP_hidden_dim))
 
         # The linear layer that maps from hidden state space to tag space
         self.hidden2tag = nn.Linear(data.HP_hidden_dim, data.label_alphabet_size)
@@ -116,9 +143,15 @@ class WordSequence(nn.Module):
                 self.word2cnn = self.word2cnn.cuda()
                 # self.cnn = self.cnn.cuda()
                 for idx in range(self.cnn_layer):
-                    self.cnn_list[idx] = self.cnn_list[idx].cuda()
+                    if self.use_idcnn:
+                        for i, dilation in enumerate(self.dilations):
+                            self.cnn_list[idx][i] = self.cnn_list[idx][i].cuda()
+                            self.dcnn_drop_list[idx][i] = self.dcnn_drop_list[idx][i].cuda()
+                            self.dcnn_batchnorm_list[idx][i] = self.dcnn_batchnorm_list[idx][i].cuda()
+                    else:
+                        self.cnn_list[idx] = self.cnn_list[idx].cuda()
                     self.cnn_drop_list[idx] = self.cnn_drop_list[idx].cuda()
-                    self.cnn_batchnorm_list[idx] = self.cnn_batchnorm_list[idx].cuda()                
+                    self.cnn_batchnorm_list[idx] = self.cnn_batchnorm_list[idx].cuda()
             else:
                 self.droplstm = self.droplstm.cuda()
                 self.lstm = self.lstm.cuda()
@@ -141,17 +174,21 @@ class WordSequence(nn.Module):
         ## word_embs (batch_size, seq_len, embed_size)
         if self.word_feature_extractor == "CNN":
             word_in = torch.tanh(self.word2cnn(word_represent)).transpose(2,1).contiguous()
-
             # feature_out = self.cnn(word_in).transpose(2,1).contiguous()
-            batch_size = word_inputs.size(0)
+
+            cnn_feature = word_in
             for idx in range(self.cnn_layer):
-                if idx == 0:
-                    cnn_feature = F.relu(self.cnn_list[idx](word_in))
+                if self.use_idcnn:
+                    for i, dilation in enumerate(self.dilations):
+                        cnn_feature = F.relu(self.cnn_list[idx][i](cnn_feature))
+                        cnn_feature = self.dcnn_drop_list[idx][i](cnn_feature)
+                        cnn_feature = self.dcnn_batchnorm_list[idx][i](cnn_feature)
                 else:
                     cnn_feature = F.relu(self.cnn_list[idx](cnn_feature))
+
                 cnn_feature = self.cnn_drop_list[idx](cnn_feature)
-                if batch_size > 1:
-                    cnn_feature = self.cnn_batchnorm_list[idx](cnn_feature)
+                cnn_feature = self.cnn_batchnorm_list[idx](cnn_feature)
+
             feature_out = cnn_feature.transpose(2,1).contiguous()
 
         else:
