@@ -168,8 +168,8 @@ class WordSequence(nn.Module):
         if self.gpu:
             self.hidden2tag = self.hidden2tag.cuda()
             if self.word_feature_extractor == "CNN":
-                # self.word2cnn = self.word2cnn.cuda()
-                self.cnn_list = self.cnn_list.cuda()
+                self.word2cnn = self.word2cnn.cuda()
+                self.cnn = self.cnn_list.cuda()
             else:
                 self.droplstm = self.droplstm.cuda()
                 self.lstm = self.lstm.cuda()
