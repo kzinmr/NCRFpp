@@ -29,14 +29,13 @@ class Data:
         self.norm_char_emb = False
         self.word_alphabet = Alphabet('word')
         self.char_alphabet = Alphabet('character')
+        self.label_alphabet = Alphabet('label',True)
 
         self.feature_name = []
         self.feature_alphabets = []
         self.feature_num = len(self.feature_alphabets)
         self.feat_config = None
 
-
-        self.label_alphabet = Alphabet('label',True)
         self.tagScheme = "NoSeg" ## BMES/BIO
         self.split_token = ' ||| '
         self.seg = True
@@ -93,7 +92,7 @@ class Data:
         self.status = "train"
         ### Hyperparameters
         self.HP_cnn_layer = 4
-        self.HP_cnn_kernel = 3
+        self.HP_cnn_kernel = 5
         self.HP_iteration = 100
         self.HP_batch_size = 10
         self.HP_char_hidden_dim = 50
@@ -494,15 +493,15 @@ class Data:
         the_item = 'cnn_layer'
         if the_item in config:
             self.HP_cnn_layer = int(config[the_item])
+        the_item = 'cnn_kernel'
+        if the_item in config:
+            self.HP_cnn_kernel = int(config[the_item])
         the_item = 'iteration'
         if the_item in config:
             self.HP_iteration = int(config[the_item])
         the_item = 'batch_size'
         if the_item in config:
             self.HP_batch_size = int(config[the_item])
-        the_item = 'cnn_kernel'
-        if the_item in config:
-            self.HP_cnn_kernel = int(config[the_item])
 
         the_item = 'char_hidden_dim'
         if the_item in config:

@@ -552,6 +552,9 @@ if __name__ == '__main__':
         data.generate_instance('test')
         data.build_pretrain_emb()
         train(data)
+        data.char_alphabet.save(data.model_dir)
+        data.word_alphabet.save(data.model_dir)
+        data.label_alphabet.save(data.model_dir)
     elif status == 'decode':
         print("MODEL: decode")
         data.load(data.dset_dir)

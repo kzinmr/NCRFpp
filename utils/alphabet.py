@@ -104,7 +104,7 @@ class Alphabet:
         :param name: The alphabet saving name, optional.
         :return:
         """
-        saving_name = name if name else self.__name
+        saving_name = name if name else self.name
         try:
             json.dump(self.get_content(), open(os.path.join(output_directory, saving_name + ".json"), 'w'))
         except Exception as e:
@@ -117,5 +117,5 @@ class Alphabet:
         :param input_directory: Directory to save model and weights
         :return:
         """
-        loading_name = name if name else self.__name
+        loading_name = name if name else self.name
         self.from_json(json.load(open(os.path.join(input_directory, loading_name + ".json"))))
