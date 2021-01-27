@@ -91,6 +91,8 @@ class WordSequence(nn.Module):
                 self.dilations = [1, 1, 2]
                 for idx in range(self.cnn_layer):
                     dcnn = nn.ModuleList()
+                    dcnn_drop = nn.ModuleList()
+                    dcnn_batchnorm = nn.ModuleList()
                     for i, dilation in enumerate(self.dilations):
                         pad_size = kernel // 2 + dilation - 1
                         dcnn.append(
@@ -102,8 +104,10 @@ class WordSequence(nn.Module):
                                 padding=pad_size,
                             )
                         )
-                        self.dcnn_drop_list.append(nn.Dropout(data.HP_dropout))
-                        self.dcnn_batchnorm_list.append(nn.BatchNorm1d(data.HP_hidden_dim))
+                        dcnn_drop.append(nn.Dropout(data.HP_dropout))
+                        dcnn_batchnorm.append(nn.BatchNorm1d(data.HP_hidden_dim))
+                    self.dcnn_drop_list.append(dcnn_drop)
+                    self.dcnn_batchnorm_list.append(dcnn_batchnorm)
                     self.cnn_list.append(dcnn)
                     self.cnn_drop_list.append(nn.Dropout(data.HP_dropout))
                     self.cnn_batchnorm_list.append(nn.BatchNorm1d(data.HP_hidden_dim))
