@@ -47,7 +47,7 @@ class IDCNN(nn.Module):
         filters,
         kernel_size=3,
         num_blocks=4,
-        dilations=[1, 1, 2],
+        dilations=[1, 2, 1],
         dropout=0.2,
     ):
         super(IDCNN, self).__init__()
