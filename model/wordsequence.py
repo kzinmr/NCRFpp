@@ -12,32 +12,32 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from .wordrep import WordRep
 
 
-class CNN(nn.Module):
-    def __init__(self, input_dim, filters, kernel_size=3, num_layers=4, dropout=0.2):
-        super(CNN, self).__init__()
+# class CNN(nn.Module):
+#     def __init__(self, input_dim, filters, kernel_size=3, num_layers=4, dropout=0.2):
+#         super(CNN, self).__init__()
 
-        self.word2cnn = nn.Linear(input_dim, filters)
+#         self.word2cnn = nn.Linear(input_dim, filters)
 
-        self.cnn = nn.Sequential()
-        for i in range(num_layers):
-            pad_size = int((kernel_size - 1) / 2)
-            layer = nn.Conv1d(
-                in_channels=filters,
-                out_channels=filters,
-                kernel_size=kernel_size,
-                padding=pad_size,
-            )
-            self.cnn.add_module("layer%d" % i, layer)
-            self.cnn.add_module("relu", nn.ReLU())
-            self.cnn.add_module("dropout", nn.Dropout(dropout))
-            self.cnn.add_module("batchnorm", nn.BatchNorm1d(filters))
+#         self.cnn = nn.Sequential()
+#         for i in range(num_layers):
+#             pad_size = int((kernel_size - 1) / 2)
+#             layer = nn.Conv1d(
+#                 in_channels=filters,
+#                 out_channels=filters,
+#                 kernel_size=kernel_size,
+#                 padding=pad_size,
+#             )
+#             self.cnn.add_module("layer%d" % i, layer)
+#             self.cnn.add_module("relu", nn.ReLU())
+#             self.cnn.add_module("dropout", nn.Dropout(dropout))
+#             self.cnn.add_module("batchnorm", nn.BatchNorm1d(filters))
 
-    def forward(self, embeddings):
-        # swap seq_len and embedding
-        word_in = torch.tanh(self.word2cnn(embeddings)).transpose(2,1).contiguous()
-        feature_out = self.cnn(word_in).transpose(2,1).contiguous()
-        # .transpose(1, 2).contiguous()
-        return feature_out
+#     def forward(self, embeddings):
+#         # swap seq_len and embedding
+#         word_in = torch.tanh(self.word2cnn(embeddings)).transpose(2,1).contiguous()
+#         feature_out = self.cnn(word_in).transpose(2,1).contiguous()
+#         # .transpose(1, 2).contiguous()
+#         return feature_out
 
 
 class IDCNN(nn.Module):
@@ -132,13 +132,35 @@ class WordSequence(nn.Module):
                     dropout=data.HP_dropout,
                 )
             else:
-                self.cnn_list = CNN(
-                    self.input_size,
-                    self.hidden_dim,
-                    kernel_size=self.cnn_kernel,
-                    num_layers=self.cnn_layer,
-                    dropout=data.HP_dropout,
-                )
+                # self.cnn_list = CNN(
+                #     self.input_size,
+                #     self.hidden_dim,
+                #     kernel_size=self.cnn_kernel,
+                #     num_layers=self.cnn_layer,
+                #     dropout=data.HP_dropout,
+                # )                
+                input_dim = self.input_size
+                filters = self.hidden_dim
+                num_layers = self.cnn_layer
+                kernel_size = self.cnn_layer
+                dropout = data.HP_dropout
+                pad_size = int((kernel_size - 1) / 2)
+
+                self.word2cnn = nn.Linear(input_dim, filters)
+                self.cnn = nn.Sequential()
+                for i in range(num_layers):
+                    self.cnn.add_module("layer%d" % i, 
+                        nn.Conv1d(
+                            in_channels=filters,
+                            out_channels=filters,
+                            kernel_size=kernel_size,
+                            padding=pad_size,
+                        )
+                    )
+                    self.cnn.add_module("relu", nn.ReLU())
+                    self.cnn.add_module("dropout", nn.Dropout(dropout))
+                    self.cnn.add_module("batchnorm", nn.BatchNorm1d(filters))                
+
 
         # The linear layer that maps from hidden state space to tag space
         self.hidden2tag = nn.Linear(data.HP_hidden_dim, data.label_alphabet_size)
@@ -169,7 +191,9 @@ class WordSequence(nn.Module):
         word_represent = self.wordrep(word_inputs,feature_inputs, word_seq_lengths, char_inputs, char_seq_lengths, char_seq_recover)
         ## word_embs (batch_size, seq_len, embed_size)
         if self.word_feature_extractor == "CNN":
-            feature_out = self.cnn_list(word_represent)
+            # feature_out = self.cnn_list(word_represent)
+            word_in = torch.tanh(self.word2cnn(word_represent)).transpose(2,1).contiguous()
+            feature_out = self.cnn(word_in).transpose(2,1).contiguous()            
         else:
             packed_words = pack_padded_sequence(word_represent, word_seq_lengths.cpu().numpy(), True)
             hidden = None
