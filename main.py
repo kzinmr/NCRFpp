@@ -7,6 +7,7 @@
 from __future__ import print_function
 import time
 import sys
+import os
 import argparse
 import random
 import torch
@@ -523,6 +524,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     data = Data()
     data.HP_gpu = torch.cuda.is_available()
+    data.model_dir = args.savemodel
     if args.config == 'None':
         data.train_dir = args.train 
         data.dev_dir = args.dev 
@@ -530,7 +532,6 @@ if __name__ == '__main__':
         data.model_dir = args.savemodel
         data.dset_dir = args.savedset
         print("Save dset directory:",data.dset_dir)
-        save_model_dir = args.savemodel
         data.word_emb_dir = args.wordemb
         data.char_emb_dir = args.charemb
         if args.seg.lower() == 'true':
@@ -552,6 +553,7 @@ if __name__ == '__main__':
         data.generate_instance('test')
         data.build_pretrain_emb()
         train(data)
+        os.makedirs(data.model_dir, exist_ok=True)
         data.char_alphabet.save(data.model_dir)
         data.word_alphabet.save(data.model_dir)
         data.label_alphabet.save(data.model_dir)
