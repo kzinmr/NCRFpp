@@ -11,6 +11,29 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from .wordrep import WordRep
 
+class WordDropout(nn.Module):
+    """ copied from flair.nn
+    Implementation of word dropout. Randomly drops out entire words (or characters) in embedding space.
+    """
+
+    def __init__(self, dropout_rate=0.05, inplace=False):
+        super(WordDropout, self).__init__()
+        self.dropout_rate = dropout_rate
+        self.inplace = inplace
+
+    def forward(self, x):
+        if not self.training or not self.dropout_rate:
+            return x
+
+        m = x.data.new(x.size(0), x.size(1), 1).bernoulli_(1 - self.dropout_rate)
+
+        mask = torch.autograd.Variable(m, requires_grad=False)
+        return mask * x
+
+    def extra_repr(self):
+        inplace_str = ", inplace" if self.inplace else ""
+        return "p={}{}".format(self.dropout_rate, inplace_str)
+
 
 class WordSequence(nn.Module):
     def __init__(self, data):
@@ -30,10 +53,12 @@ class WordSequence(nn.Module):
             self.input_size += data.feature_emb_dims[idx]
         self.hidden_dim = data.HP_hidden_dim
         self.word_feature_extractor = data.word_feature_extractor
+        self.dropout_rate = data.HP_dropout
+        self.word_dropout_rate = data.HP_word_dropout
         if self.word_feature_extractor in {"GRU", "LSTM"}:
             # The LSTM takes word embeddings as inputs, and outputs hidden states
             # with dimensionality hidden_dim.
-            self.droplstm = nn.Dropout(data.HP_dropout)
+            self.droplstm = nn.Dropout(self.dropout_rate)
             self.lstm_layer = data.HP_lstm_layer
             self.bilstm_flag = data.HP_bilstm
             if self.bilstm_flag:
@@ -45,6 +70,8 @@ class WordSequence(nn.Module):
             else:  # self.word_feature_extractor == "LSTM":
                 self.lstm = nn.LSTM(self.input_size, self.hidden_dim, num_layers=self.lstm_layer, batch_first=True, bidirectional=self.bilstm_flag)
         elif self.word_feature_extractor == "CNN":
+            if self.word_dropout_rate > 0:
+                self.word_dropout = WordDropout(self.word_dropout_rate)
             self.word2cnn = nn.Linear(self.input_size, self.hidden_dim)
             self.cnn_layer = data.HP_cnn_layer
             print("CNN layer: ", self.cnn_layer)
@@ -72,12 +99,12 @@ class WordSequence(nn.Module):
                                 padding=pad_size,
                             )
                         )
-                        dcnn_drop.append(nn.Dropout(data.HP_dropout))
+                        dcnn_drop.append(nn.Dropout(self.dropout_rate))
                         dcnn_batchnorm.append(nn.BatchNorm1d(self.hidden_dim))
                     self.dcnn_drop_list.append(dcnn_drop)
                     self.dcnn_batchnorm_list.append(dcnn_batchnorm)
                     self.cnn_list.append(dcnn)
-                    self.cnn_drop_list.append(nn.Dropout(data.HP_dropout))
+                    self.cnn_drop_list.append(nn.Dropout(self.dropout_rate))
                     self.cnn_batchnorm_list.append(nn.BatchNorm1d(self.hidden_dim))
 
             else:
@@ -87,7 +114,7 @@ class WordSequence(nn.Module):
                 pad_size = int((self.cnn_kernel-1)/2)
                 for idx in range(self.cnn_layer):
                     self.cnn_list.append(nn.Conv1d(self.hidden_dim, self.hidden_dim, kernel_size=self.cnn_kernel, padding=pad_size))
-                    self.cnn_drop_list.append(nn.Dropout(data.HP_dropout))
+                    self.cnn_drop_list.append(nn.Dropout(self.dropout_rate))
                     self.cnn_batchnorm_list.append(nn.BatchNorm1d(self.hidden_dim))
 
         # The linear layer that maps from hidden state space to tag space
@@ -96,6 +123,8 @@ class WordSequence(nn.Module):
         if self.gpu:
             self.hidden2tag = self.hidden2tag.cuda()
             if self.word_feature_extractor == "CNN":
+                if self.word_dropout_rate > 0:
+                    self.word_dropout = self.word_dropout.cuda()
                 self.word2cnn = self.word2cnn.cuda()
                 # self.cnn = self.cnn.cuda()
                 for idx in range(self.cnn_layer):
@@ -127,6 +156,8 @@ class WordSequence(nn.Module):
         """
         
         word_represent = self.wordrep(word_inputs,feature_inputs, word_seq_lengths, char_inputs, char_seq_lengths, char_seq_recover)
+        if self.word_dropout_rate > 0.0:
+            word_represent = self.word_dropout(word_represent)        
         ## word_embs (batch_size, seq_len, embed_size)
         if self.word_feature_extractor == "CNN":
             word_in = torch.tanh(self.word2cnn(word_represent)).transpose(2,1).contiguous()
